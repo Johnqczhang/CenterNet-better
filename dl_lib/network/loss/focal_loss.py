@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 
 import torch
+import torch.nn.functional as F
 
 
 def modified_focal_loss(pred, gt):
@@ -27,4 +28,23 @@ def modified_focal_loss(pred, gt):
         loss = -neg_loss
     else:
         loss = -(pos_loss + neg_loss) / num_pos
+    return loss
+
+
+@torch.jit.script
+def sigmoid_focal_loss_umich(
+    inputs: torch.Tensor,
+    targets: torch.Tensor,
+    alpha: float=2,
+    beta: float=4
+):
+    p = torch.sigmoid(inputs)
+    pos_inds = targets.eq(1).float()
+    neg_inds = 1 - pos_inds
+    ce_loss = F.binary_cross_entropy_with_logits(inputs, pos_inds, reduction="none")
+    p_t = p * pos_inds + (1 - p) * neg_inds
+    y_t = pos_inds + (1 - targets) * neg_inds
+    loss = ce_loss * ((1 - p_t) ** alpha) * (y_t ** beta)
+
+    loss = loss.sum()
     return loss

@@ -12,3 +12,12 @@ def reg_l1_loss(output, mask, index, target):
     loss = F.l1_loss(pred * mask, target * mask, reduction='sum')
     loss = loss / (mask.sum() + 1e-4)
     return loss
+
+
+def reg_l1_loss(output, index, target):
+    loss = F.l1_loss(
+        output[index[:, 0], :, index[:, 2], index[:, 1]],
+        target,
+        reduction="sum"
+    )
+    return loss

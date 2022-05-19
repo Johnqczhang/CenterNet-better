@@ -17,18 +17,21 @@ class CenterNetGT(object):
         tensor_dim = config.MODEL.CENTERNET.TENSOR_DIM
 
         scoremap_list, wh_list, reg_list, reg_mask_list, index_list = [[] for i in range(5)]
-        for data in batched_input:
+        ctr_inds = []
+        num_pos = 0
+        # for data in batched_input:
+        for i, data in enumerate(batched_input):
             # img_size = (data['height'], data['width'])
 
             bbox_dict = data['instances'].get_fields()
 
             # init gt tensors
             gt_scoremap = torch.zeros(num_classes, *output_size)
-            gt_wh = torch.zeros(tensor_dim, 2)
-            gt_reg = torch.zeros_like(gt_wh)
-            reg_mask = torch.zeros(tensor_dim)
-            gt_index = torch.zeros(tensor_dim)
-            # pass
+            # gt_wh = torch.zeros(tensor_dim, 2)
+            # gt_reg = torch.zeros_like(gt_wh)
+            # reg_mask = torch.zeros(tensor_dim)
+            # gt_index = torch.zeros(tensor_dim)
+            # # pass
 
             boxes, classes = bbox_dict['gt_boxes'], bbox_dict['gt_classes']
             num_boxes = boxes.tensor.shape[0]
@@ -36,32 +39,43 @@ class CenterNetGT(object):
 
             centers = boxes.get_centers()
             centers_int = centers.to(torch.int32)
-            gt_index[:num_boxes] = centers_int[..., 1] * output_size[1] + centers_int[..., 0]
-            gt_reg[:num_boxes] = centers - centers_int
-            reg_mask[:num_boxes] = 1
+            # gt_index[:num_boxes] = centers_int[..., 1] * output_size[1] + centers_int[..., 0]
+            # gt_reg[:num_boxes] = centers - centers_int
+            # reg_mask[:num_boxes] = 1
 
-            wh = torch.zeros_like(centers)
+            gt_ctr_inds = torch.zeros((num_boxes, 3)).long()
+            gt_ctr_inds[:, 0] = i
+            gt_ctr_inds[:, 1:3] = centers_int.long()
+            ctr_inds.append(gt_ctr_inds)
+            num_pos += num_boxes
+
             box_tensor = boxes.tensor
-            wh[..., 0] = box_tensor[..., 2] - box_tensor[..., 0]
-            wh[..., 1] = box_tensor[..., 3] - box_tensor[..., 1]
+            wh = box_tensor[:, 2:] - box_tensor[:, :2]
             CenterNetGT.generate_score_map(
                 gt_scoremap, classes, wh,
                 centers_int, min_overlap,
             )
-            gt_wh[:num_boxes] = wh
+            # gt_wh[:num_boxes] = wh
 
             scoremap_list.append(gt_scoremap)
-            wh_list.append(gt_wh)
-            reg_list.append(gt_reg)
-            reg_mask_list.append(reg_mask)
-            index_list.append(gt_index)
+            # wh_list.append(gt_wh)
+            # reg_list.append(gt_reg)
+            # reg_mask_list.append(reg_mask)
+            # index_list.append(gt_index)
+            wh_list.append(wh)
+            reg_list.append(centers - centers.floor())
 
+        # assert num_pos == torch.stack(reg_mask_list, dim=0).sum().item()
         gt_dict = {
             "score_map": torch.stack(scoremap_list, dim=0),
-            "wh": torch.stack(wh_list, dim=0),
-            "reg": torch.stack(reg_list, dim=0),
-            "reg_mask": torch.stack(reg_mask_list, dim=0),
-            "index": torch.stack(index_list, dim=0),
+            # "wh": torch.stack(wh_list, dim=0),
+            # "reg": torch.stack(reg_list, dim=0),
+            # "reg_mask": torch.stack(reg_mask_list, dim=0),
+            # "index": torch.stack(index_list, dim=0),
+            "ctr_inds": torch.cat(ctr_inds, dim=0),
+            "wh": torch.cat(wh_list, dim=0),
+            "reg": torch.cat(reg_list, dim=0),
+            "num_pos": max(num_pos, 1),
         }
         return gt_dict
 

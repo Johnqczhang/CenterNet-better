@@ -9,6 +9,7 @@ from dl_lib.structures import Boxes, ImageList, Instances
 
 from .generator import CenterNetDecoder, CenterNetGT
 from .loss import modified_focal_loss, reg_l1_loss
+from .loss.focal_loss import sigmoid_focal_loss_umich
 
 
 class CenterNet(nn.Module):
@@ -99,18 +100,25 @@ class CenterNet(nn.Module):
         pred_score = pred_dict['cls']
         cur_device = pred_score.device
         for k in gt_dict:
-            gt_dict[k] = gt_dict[k].to(cur_device)
+            if isinstance(gt_dict[k], torch.Tensor):
+                gt_dict[k] = gt_dict[k].to(cur_device)
 
-        loss_cls = modified_focal_loss(pred_score, gt_dict['score_map'])
+        # loss_cls = modified_focal_loss(pred_score, gt_dict['score_map'])
 
-        mask = gt_dict['reg_mask']
-        index = gt_dict['index']
-        index = index.to(torch.long)
+        # mask = gt_dict['reg_mask']
+        # index = gt_dict['index']
+        # index = index.to(torch.long)
         # width and height loss, better version
-        loss_wh = reg_l1_loss(pred_dict['wh'], mask, index, gt_dict['wh'])
+        # loss_wh = reg_l1_loss(pred_dict['wh'], mask, index, gt_dict['wh'])
 
-        # regression loss
-        loss_reg = reg_l1_loss(pred_dict['reg'], mask, index, gt_dict['reg'])
+        # # regression loss
+        # loss_reg = reg_l1_loss(pred_dict['reg'], mask, index, gt_dict['reg'])
+        ctr_inds = gt_dict["ctr_inds"]
+        num_pos = max(len(ctr_inds), 1)
+
+        loss_cls = sigmoid_focal_loss_umich(pred_score, gt_dict['score_map']) / num_pos
+        loss_wh = reg_l1_loss(pred_dict["wh"], ctr_inds, gt_dict["wh"]) / num_pos * 0.5
+        loss_reg = reg_l1_loss(pred_dict["reg"], ctr_inds, gt_dict["reg"]) / num_pos * 0.5
 
         loss_cls *= self.cfg.MODEL.LOSS.CLS_WEIGHT
         loss_wh *= self.cfg.MODEL.LOSS.WH_WEIGHT
@@ -184,6 +192,7 @@ class CenterNet(nn.Module):
         Normalize, pad and batch the input images.
         """
         images = [x["image"].to(self.device) for x in batched_inputs]
-        images = [self.normalizer(img / 255) for img in images]
+        # images = [self.normalizer(img / 255) for img in images]
+        images = [self.normalizer(img) for img in images]
         images = ImageList.from_tensors(images, self.backbone.size_divisibility)
         return images

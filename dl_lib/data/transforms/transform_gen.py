@@ -193,7 +193,7 @@ class CenterAffine(TransformGen):
         center = np.array([width / 2, height / 2], dtype=np.float32)
         scale = float(max(img_shape))
         if self.random_aug:
-            scale = scale * np.random.choice(np.arange(0.6, 1.4, 0.1))
+            scale = scale * np.random.choice(np.arange(0.6, 1.5, 0.1))
             h_boarder = self._get_boarder(self.boarder, height)
             w_boarder = self._get_boarder(self.boarder, width)
             center[0] = np.random.randint(low=w_boarder, high=width - w_boarder)

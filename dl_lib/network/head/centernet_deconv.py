@@ -20,6 +20,7 @@ class DeconvLayer(nn.Module):
             self.dcn = ModulatedDeformConvWithOff(
                 in_planes, out_planes,
                 kernel_size=3, deformable_groups=1,
+                bias=False,
             )
         else:
             self.dcn = DeformConvWithOff(
@@ -36,7 +37,11 @@ class DeconvLayer(nn.Module):
             output_padding=deconv_out_pad,
             bias=False,
         )
-        self._deconv_init()
+        # self._deconv_init()
+        nn.init.constant_(self.dcn.offset_mask_conv.weight, 0)
+        nn.init.constant_(self.dcn.offset_mask_conv.bias, 0)
+        nn.init.normal_(self.up_sample.weight, std=0.001)
+
         self.up_bn = nn.BatchNorm2d(out_planes)
         self.relu = nn.ReLU()
 
@@ -55,10 +60,7 @@ class DeconvLayer(nn.Module):
         c = (2 * f - 1 - f % 2) / (2. * f)
         for i in range(w.size(2)):
             for j in range(w.size(3)):
-                w[0, 0, i, j] = \
-                    (1 - math.fabs(i / f - c)) * (1 - math.fabs(j / f - c))
-        for c in range(1, w.size(0)):
-            w[c, 0, :, :] = w[0, 0, :, :]
+                w[:, 0, i, j] = (1 - math.fabs(i / f - c)) * (1 - math.fabs(j / f - c))
 
 
 class CenternetDeconv(nn.Module):

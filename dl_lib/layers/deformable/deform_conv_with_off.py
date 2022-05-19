@@ -35,7 +35,7 @@ class ModulatedDeformConvWithOff(nn.Module):
 
     def __init__(self, in_channels, out_channels,
                  kernel_size=3, stride=1, padding=1,
-                 dilation=1, deformable_groups=1):
+                 dilation=1, deformable_groups=1, bias=True):
         super(ModulatedDeformConvWithOff, self).__init__()
         self.offset_mask_conv = nn.Conv2d(
             in_channels,
@@ -47,7 +47,7 @@ class ModulatedDeformConvWithOff(nn.Module):
         self.dcnv2 = ModulatedDeformConv(
             in_channels, out_channels, kernel_size=kernel_size,
             stride=stride, padding=padding, dilation=dilation,
-            deformable_groups=deformable_groups,
+            deformable_groups=deformable_groups, bias=bias,
         )
 
     def forward(self, input):

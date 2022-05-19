@@ -448,7 +448,7 @@ class ModulatedDeformConv(nn.Module):
         else:
             self.bias = None
 
-        nn.init.kaiming_uniform_(self.weight, nonlinearity="relu")
+        nn.init.kaiming_uniform_(self.weight, a=1)
         if self.bias is not None:
             nn.init.constant_(self.bias, 0)
 

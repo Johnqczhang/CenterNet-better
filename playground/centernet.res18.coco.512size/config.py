@@ -5,8 +5,8 @@ _config_dict = dict(
     MODEL=dict(
         WEIGHTS="",
         RESNETS=dict(DEPTH=18),
-        PIXEL_MEAN=[0.485, 0.456, 0.406],
-        PIXEL_STD=[0.229, 0.224, 0.225],
+        PIXEL_MEAN=[123.675, 116.28, 103.53],
+        PIXEL_STD=[58.395, 57.12, 57.375],
         CENTERNET=dict(
             DECONV_CHANNEL=[512, 256, 128, 64],
             DECONV_KERNEL=[4, 4, 4],
@@ -57,17 +57,23 @@ _config_dict = dict(
         ),
         LR_SCHEDULER=dict(
             GAMMA=0.1,
-            STEPS=(81000, 108000),
-            MAX_ITER=126000,
+            # STEPS=(81000, 108000),
+            # MAX_ITER=126000,
+            STEPS=(82440, 109920),
+            MAX_ITER=128240,  # 140 epochs
             WARMUP_ITERS=1000,
         ),
         IMS_PER_BATCH=128,
+        CHECKPOINT_PERIOD=4580,
     ),
     OUTPUT_DIR=osp.join(
         '/data/Outputs/model_logs/playground',
         osp.split(osp.realpath(__file__))[0].split("playground/")[-1]
     ),
-    GLOBAL=dict(DUMP_TEST=False)
+    GLOBAL=dict(DUMP_TEST=False),
+    TEST=dict(
+        EVAL_PERIOD=4580,
+    )
 )
 
 

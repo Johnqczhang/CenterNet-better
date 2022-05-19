@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding:utf-8 -*-
-import torch
+# import torch
+import math
 import torch.nn as nn
 
 
@@ -11,8 +12,18 @@ class SingleHead(nn.Module):
         self.feat_conv = nn.Conv2d(in_channel, in_channel, kernel_size=3, padding=1)
         self.relu = nn.ReLU()
         self.out_conv = nn.Conv2d(in_channel, out_channel, kernel_size=1)
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.normal_(m.weight, std=0.001)
+                nn.init.constant_(m.bias, 0)
+
         if bias_fill:
-            self.out_conv.bias.data.fill_(bias_value)
+            # prob = 0.1 -> bias_value = -2.19
+            # prob = 0.01 -> bias_value = -4.6
+            prior_prob = 0.1
+            bias_value = -math.log((1 - prior_prob) / prior_prob)
+            nn.init.constant_(self.out_conv.bias, bias_value)
 
     def forward(self, x):
         x = self.feat_conv(x)
@@ -39,7 +50,7 @@ class CenternetHead(nn.Module):
 
     def forward(self, x):
         cls = self.cls_head(x)
-        cls = torch.sigmoid(cls)
+        # cls = torch.sigmoid(cls)
         wh = self.wh_head(x)
         reg = self.reg_head(x)
         pred = {
